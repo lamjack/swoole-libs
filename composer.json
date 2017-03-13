@@ -1,0 +1,21 @@
+{
+    "name": "wiz/swoole-libs",
+    "description": "swoole常用封装",
+    "type": "library",
+    "keywords": ["swoole", "framework", "library"],
+    "homepage": "https://github.com/lamjack/swoole-libs",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "jack",
+            "email": "jack@wizmacau.com",
+            "homepage": "https://lamjack.github.io",
+            "role": "Developer"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Swoole\\": "src/"
+        }
+    }
+}
