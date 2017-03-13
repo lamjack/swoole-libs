@@ -17,5 +17,11 @@
         "psr-4": {
             "Swoole\\": "src/"
         }
+    },
+    "require": {
+        "php": ">=5.6"
+    },
+    "suggest": {
+        "ext-swoole": "swoole版本必须>=1.8"
     }
 }
