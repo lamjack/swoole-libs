@@ -16,6 +16,7 @@
 namespace Swoole\Server;
 
 use Swoole;
+use Swoole\Protocol\AbstractProtocol;
 
 /**
  * Class Server
@@ -61,7 +62,7 @@ class Server extends AbstractBaseServer
 
     /**
      * @param string $host
-     * @param $port
+     * @param int $port
      * @param bool $ssl
      * @return Server
      */
@@ -78,20 +79,63 @@ class Server extends AbstractBaseServer
 
         $this->sw->on('Start', [$this, 'onMasterStart']);
         $this->sw->on('Shutdown', [$this, 'onMasterStop']);
-//        $this->sw->on('ManagerStop', [$this, 'onManagerStop']);
-//        $this->sw->on('WorkerStart', [$this, 'onWorkerStart']);
+        $this->sw->on('ManagerStop', [$this, 'onManagerStop']);
+        $this->sw->on('WorkerStart', [$this, 'onWorkerStart']);
+
+        // 如果设置了处理协议
+        $this->callProtocolMethod('setServer', [$this->sw]);
+
+        $this->sw->on('Connect', function () {
+            $this->callProtocolMethod('onConnect', func_get_args());
+        });
+
+        $this->sw->on('Close', function () {
+            $this->callProtocolMethod('onClose', func_get_args());
+        });
+
+        if (self::$useSwooleHttpServer) {
+            $this->sw->on('Request', function () {
+                $this->callProtocolMethod('onRequest', func_get_args());
+            });
+        } else {
+            $this->sw->on('Receive', function () {
+                $this->callProtocolMethod('onReceive', func_get_args());
+            });
+        }
+
+        $this->sw->on('Task', function () {
+            $this->callProtocolMethod('onTask', func_get_args());
+        });
+
+        $this->sw->on('Finish', function () {
+            $this->callProtocolMethod('onFinish', func_get_args());
+        });
 
         $this->sw->start();
     }
 
     public function onMasterStart($serv)
     {
-        Swoole\Console::setProcessName($this->getProcessName() . ':master -host=' . $this->host . ' -port=' . $this->port);
+        Swoole\Console::setProcessName($this->getProcessName() . ': master -host=' . $this->host . ' -port=' . $this->port);
     }
 
     public function onMasterStop($serv)
     {
 
+    }
+
+    public function onManagerStop()
+    {
+
+    }
+
+    public function onWorkerStart($serv, $workerId)
+    {
+        if ($workerId >= $serv->setting['worker_num']) {
+            Swoole\Console::setProcessName($this->getProcessName() . ': task');
+        } else {
+            Swoole\Console::setProcessName($this->getProcessName() . ': worker');
+        }
     }
 
     /**
@@ -118,8 +162,18 @@ class Server extends AbstractBaseServer
         return $this->sw->shutdown();
     }
 
-    public function setProtocol($protocol)
+    /**
+     * 调用协议方法
+     *
+     * @param string $func
+     * @param array $argv
+     * @return mixed
+     */
+    protected function callProtocolMethod($func, $argv = [])
     {
-        // TODO: Implement setProtocol() method.
+        if (null !== $this->protocol && method_exists($this->protocol, $func)) {
+            return call_user_func_array([$this->protocol, $func], $argv);
+        }
+        return null;
     }
 }

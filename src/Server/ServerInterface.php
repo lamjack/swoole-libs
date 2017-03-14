@@ -14,6 +14,12 @@
  */
 namespace Swoole\Server;
 
+use Swoole\Protocol\ProtocolInterface;
+
+/**
+ * Interface ServerInterface
+ * @package Swoole\Server
+ */
 interface ServerInterface
 {
     /**
@@ -41,8 +47,9 @@ interface ServerInterface
     public function shutdown();
 
     /**
-     * @param $protocol
-     * @return mixed
+     * Set protocol
+     *
+     * @param ProtocolInterface $protocol
      */
-    public function setProtocol($protocol);
+    public function setProtocol(ProtocolInterface $protocol);
 }

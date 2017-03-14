@@ -14,6 +14,8 @@
  */
 namespace Swoole\Server;
 
+use Swoole\Protocol\ProtocolInterface;
+
 /**
  * Class AbstractBaseServer
  * @package Swoole\Server
@@ -23,11 +25,24 @@ abstract class AbstractBaseServer implements ServerInterface
     protected $processName;
 
     /**
+     * @var ProtocolInterface
+     */
+    protected $protocol;
+
+    /**
      * @param string $processName
      */
     public function setProcessName($processName)
     {
         $this->processName = $processName;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setProtocol(ProtocolInterface $protocol)
+    {
+        $this->protocol = $protocol;
     }
 
     /**
