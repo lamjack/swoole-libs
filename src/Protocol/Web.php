@@ -17,5 +17,27 @@ namespace Swoole\Protocol;
 
 abstract class Web extends AbstractProtocol
 {
+    const SOFTWARE = 'swoole';
 
+    /**
+     * 请求信息，全部都是Request对象
+     *
+     * @var array
+     */
+    protected $requests = [];
+
+    protected $keepalive = false;
+
+    public function __construct($config = [])
+    {
+        define('SWOOLE_SERVER', true);
+    }
+
+    /**
+     * @param int $clientId
+     */
+    protected function cleanBuffer($clientId)
+    {
+        unset($this->requests[$clientId]);
+    }
 }
