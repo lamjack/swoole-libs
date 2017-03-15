@@ -53,6 +53,14 @@ abstract class Http extends Web
     /**
      * {@inheritdoc}
      */
+    public function onStart($server)
+    {
+        // TODO: Implement onStart() method.
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     public function onReceive($server, $clientId, $fromId, $data)
     {
         $this->debug('HTTP[收到请求报文]', ['clientId' => $clientId, 'data' => $data]);
@@ -253,7 +261,7 @@ abstract class Http extends Web
      */
     protected function response(Request $request, Response $response)
     {
-        $this->debug('Http[发送响应]');
+        $this->debug('Http[发送响应]', ['header' => $response->header, 'body' => $response->body]);
 
         if (!isset($response->header['Date'])) {
             $response->header['Date'] = gmdate(self::DATE_FORMAT_HTTP);

@@ -34,6 +34,14 @@ abstract class AbstractProtocol implements ProtocolInterface
     private $log;
 
     /**
+     * {@inheritdoc}
+     */
+    public function onShutdown($server)
+    {
+        // TODO: Implement onShutdown() method.
+    }
+
+    /**
      * @param \swoole_server $server
      */
     public function setServer(\swoole_server $server)

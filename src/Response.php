@@ -73,7 +73,12 @@ class Response
         if ($fastcgi) {
 
         } else {
-            $out .= "HTTP/1.1 200 OK\r\n";
+            if (isset($this->header[0])) {
+                $out .= $this->header[0] . "\r\n";
+                unset($this->header[0]);
+            } else {
+                $out .= "HTTP/1.1 200 OK\r\n";
+            }
         }
 
         if (!isset($this->header['Server'])) {

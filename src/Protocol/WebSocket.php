@@ -17,6 +17,10 @@ namespace Swoole\Protocol;
 use Swoole\Request;
 use Swoole\Response;
 
+/**
+ * Class WebSocket
+ * @package Swoole\Protocol
+ */
 abstract class WebSocket extends Http
 {
     const OPCODE_CONTINUATION_FRAME = 0x0;
@@ -52,6 +56,30 @@ abstract class WebSocket extends Http
     protected $keepalive = true;
 
     /**
+     * 新客户端连接
+     *
+     * @param int $clientId
+     */
+    abstract protected function onEnter($clientId);
+
+    /**
+     * 收到消息
+     *
+     * @param int $clientId
+     * @param string $message
+     * @param array $ws 含有二进制数据
+     */
+    abstract protected function onMessage($clientId, $message, $ws);
+
+    /**
+     * 客户端退出
+     *
+     * @param int $clientId
+     * @return mixed
+     */
+    abstract protected function onExit($clientId);
+
+    /**
      * {@inheritdoc}
      */
     public function onConnect($server, $clientId, $fromId)
@@ -62,10 +90,19 @@ abstract class WebSocket extends Http
     /**
      * {@inheritdoc}
      */
+    public function onClose($server, $clientId, $fromId)
+    {
+        $this->onExit($clientId);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     public function onReceive($server, $clientId, $fromId, $data)
     {
         if (!isset($this->connections[$clientId])) {
             parent::onReceive($server, $clientId, $fromId, $data);
+            return;
         }
 
         while (strlen($data) > 0 && isset($this->connections[$clientId])) {
@@ -98,21 +135,6 @@ abstract class WebSocket extends Http
             }
         }
     }
-
-    /**
-     * 新客户端连接
-     *
-     * @param int $clientId
-     */
-    abstract protected function onEnter($clientId);
-
-    /**
-     * 收到消息
-     *
-     * @param int $client_id
-     * @param mixed $message
-     */
-    abstract function onMessage($client_id, $message);
 
     /**
      * {@inheritdoc}
@@ -184,12 +206,30 @@ abstract class WebSocket extends Http
             ];
             $this->connections[$request->fd] = $conn;
 
-            // @todo 检查WebSocket是否已经超过指定连接数
+            if (count($this->connections) > $this->maxConnect) {
+                $this->cleanConnection();
+            }
 
             $this->onWsConnect($request->fd);
         }
 
         parent::postResponse($request, $response);
+    }
+
+    /**
+     * 清理已连接的超时客户端
+     */
+    protected function cleanConnection()
+    {
+        $this->debug('WebSocket[清理已连接的超时客户端]');
+
+        $now = time();
+        foreach ($this->connections as $clientId => $connection) {
+            if ($connection['time'] < $now - $this->heartTime) {
+                $this->debug('WebSocket[客户端超时无响应清理]', ['clientId' => $clientId]);
+                $this->close($clientId);
+            }
+        }
     }
 
     /**
@@ -331,6 +371,7 @@ abstract class WebSocket extends Http
                 $maskC = ($maskC + 1) % 4;
             }
         }
+        $this->debug('WebSocket[解析完整数据帧]', ['frame' => $data]);
         return $data;
     }
 
@@ -375,14 +416,14 @@ abstract class WebSocket extends Http
      */
     protected function opcodeSwitch($clientId, &$ws)
     {
-        $this->debug("WebSocket[客户端#{$clientId},opcode{$ws['opcode']}]");
+        $this->debug("WebSocket[客户端#{$clientId},opcode{$ws['opcode']}]", ['ws' => $ws]);
 
         switch ($ws['opcode']) {
             // 数据帧
             case self::OPCODE_BINARY_FRAME:
             case self::OPCODE_TEXT_FRAME:
                 if (0x1 === $ws['fin']) {
-                    $this->onMessage($clientId, $ws);
+                    $this->onMessage($clientId, $ws['message'], $ws);
                 } else {
                     // 帧不完整
                 }
